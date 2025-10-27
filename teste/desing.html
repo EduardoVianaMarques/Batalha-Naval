@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Batalha Tática — Mapa Militar 15x15</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sidebar">
+  <h1>PAINEL DE COMANDO</h1>
+  <div id="palette">
+    <div class="palette-item" draggable="true" data-w="1" data-h="1">
+      <div class="sample">1×1</div> Unidade Leve
+    </div>
+    <div class="palette-item" draggable="true" data-w="2" data-h="1">
+      <div class="sample">2×1</div> Veículo
+    </div>
+    <div class="palette-item" draggable="true" data-w="2" data-h="2">
+      <div class="sample">2×2</div> Tanque
+    </div>
+    <div class="palette-item" draggable="true" data-w="3" data-h="1">
+      <div class="sample">3×1</div> Navio
+    </div>
+    <div class="palette-item" draggable="true" data-w="4" data-h="1">
+      <div class="sample">4×1</div> Porta-Aviões
+    </div>
+  </div>
+
+  <hr style="border:1px solid var(--green);opacity:0.3;margin:15px 0;">
+  <button id="clearBtn">RESETAR MAPA</button>
+  <button id="toggleOccupancy">SCAN VISUAL</button>
+
+  <div class="info">
+    🪖 Arraste unidades para o mapa.<br>
+    Use o canto inferior direito para redimensionar.<br>
+    Clique direito remove a unidade.
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+<audio id="placeSound" src="https://assets.mixkit.co/active_storage/sfx/2562/2562-preview.mp3" preload="auto"></audio>
+<script src="script.js"></script>
+</body>
+</html>

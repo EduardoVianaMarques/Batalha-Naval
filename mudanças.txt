@@ -1,0 +1,4 @@
+informar ganhador e perdedor
+talvez adicionar um fundo de mar e imagens de navios e porta avioes
+verificar o server e script
+mecher em pequenos detalhes

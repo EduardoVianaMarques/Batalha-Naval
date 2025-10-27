@@ -1,0 +1,155 @@
+:root {
+  --accent: #00ff80;
+  --accent-dark: #007a3d;
+  --cell-dark: #012b1b;
+  --cell-light: #023523;
+  --bg: #000;
+}
+
+body {
+  background: radial-gradient(circle at center, #001a10, #000 90%);
+  color: #b9fbd1;
+  font-family: "Segoe UI", sans-serif;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1300px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  width: 1300px;
+  background: rgba(0, 255, 128, 0.05);
+  border: 1px solid rgba(0, 255, 128, 0.2);
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 255, 128, 0.15);
+}
+
+.ship-list {
+  display: flex;
+  gap: 10px;
+}
+
+.ship-item {
+  background: rgba(0, 255, 80, 0.1);
+  border: 1px solid rgba(0, 255, 128, 0.2);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.ship-item:hover {
+  background: rgba(0, 255, 80, 0.2);
+}
+
+.ship-swatch {
+  height: 10px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  border-radius: 4px;
+  box-shadow: 0 0 6px var(--accent);
+  margin-top: 4px;
+}
+
+button {
+  background: var(--accent);
+  color: #001b0d;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.25s;
+}
+
+button:hover {
+  background: #00e372;
+  transform: scale(1.05);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#status {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+main {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.board {
+  background: linear-gradient(180deg, #000, #011c10);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 0 25px rgba(0, 255, 100, 0.25);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(10, 40px);
+  grid-template-rows: repeat(10, 40px);
+  gap: 4px;
+}
+
+.cell {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--cell-dark), var(--cell-light));
+  transition: transform 0.15s, background 0.2s;
+}
+
+.cell:hover {
+  transform: scale(1.05);
+  outline: 2px solid var(--accent);
+}
+
+.ship-cell {
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.hit {
+  background: radial-gradient(circle, #ff3030, #7a1010);
+  animation: blinkHit 0.6s infinite alternate;
+}
+
+.miss {
+  background: radial-gradient(circle, #0a2a1a, #000);
+  border: 1px dashed #045b3d;
+}
+
+@keyframes blinkHit {
+  from {
+    box-shadow: 0 0 5px #ff3030;
+  }
+  to {
+    box-shadow: 0 0 15px #ff3030;
+  }
+}
