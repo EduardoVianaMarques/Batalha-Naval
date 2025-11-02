@@ -17,12 +17,21 @@ const rooms = new Map(); // roomId -> { players: [socketIds], boards: {}, ready:
 io.on("connection", (socket) => {
   console.log(`🔌 Novo jogador: ${socket.id}`);
 
+  socket.on("set_name", (name) => {
+    socket.data.name = name; // armazenamos o nome no socket
+  });
+
   if (waitingPlayer) {
     const roomId = `room-${waitingPlayer}-${socket.id}`;
     rooms.set(roomId, { players: [waitingPlayer, socket.id], boards: {}, ready: {}, names: {} });
 
     socket.join(roomId);
     io.to(waitingPlayer).socketsJoin(roomId);
+
+    // salvar nomes
+    const room = rooms.get(roomId);
+    room.names[waitingPlayer] = io.sockets.sockets.get(waitingPlayer)?.data.name || "Jogador1";
+    room.names[socket.id] = socket.data.name || "Jogador2";
 
     io.to(roomId).emit("match_found", { roomId });
     console.log(`🎯 Sala criada: ${roomId}`);
@@ -32,23 +41,16 @@ io.on("connection", (socket) => {
     socket.emit("waiting", "Aguardando outro jogador...");
   }
 
-  socket.on("ready", ({ roomId, board, name }) => {
+  socket.on("ready", ({ roomId, board }) => {
     const room = rooms.get(roomId);
     if (!room) return;
 
-    // Salva o nome do jogador
-    room.names[socket.id] = name;
-
-    // Salva o estado do tabuleiro
     room.boards[socket.id] = board.map(cell => cell ? true : false);
     room.ready[socket.id] = true;
 
-    // Se ambos prontos
     if (room.players.every(p => room.ready[p])) {
       const firstTurn = room.players[Math.floor(Math.random() * 2)];
-
-      // Envia nomes dos jogadores para ambos
-      io.to(roomId).emit("both_ready", { firstTurn, names: room.names });
+      io.to(roomId).emit("both_ready", { firstTurn });
       console.log(`🚀 Ambos prontos na sala ${roomId}`);
     }
   });
@@ -72,8 +74,11 @@ io.on("connection", (socket) => {
 
     const allShipsSunk = room.boards[opponentId].every(cell => cell === false);
     if (allShipsSunk) {
-      io.to(socket.id).emit("game_won");
-      io.to(opponentId).emit("game_lost");
+      const winnerName = room.names[socket.id] || "Jogador";
+      const loserName = room.names[opponentId] || "Oponente";
+
+      io.to(socket.id).emit("game_won", { winnerName });
+      io.to(opponentId).emit("game_lost", { loserName });
     } else {
       io.to(socket.id).emit("your_turn");
       io.to(opponentId).emit("opponent_turn");

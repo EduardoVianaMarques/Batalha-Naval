@@ -1,33 +1,52 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Batalha Naval — Multiplayer Neon</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="/socket.io/socket.io.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batalha Naval Multiplayer</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="wrap">
-    <aside class="controls">
+
+    <div class="controls">
       <div class="ship-list" id="shipList"></div>
-      <button id="rotate">↻ Rotacionar</button>
-      <button id="ready">✅ Posicionamento Pronto</button>
-      <div id="status">Conectando...</div>
-    </aside>
+      <button id="rotate">Rotacionar (R)</button>
+      <button id="ready">Pronto</button>
+      <span id="status">Aguardando...</span>
+    </div>
 
     <main>
-      <div class="board">
-        <h2>Seu Tabuleiro</h2>
-        <div class="grid" id="playerGrid"></div>
+      <div class="board" id="playerBoard">
+        <h3>Seu Tabuleiro</h3>
+        <div id="playerGrid" class="grid"></div>
       </div>
-      <div class="board">
-        <h2>Tabuleiro Inimigo</h2>
-        <div class="grid" id="enemyGrid"></div>
+
+      <div class="board" id="enemyBoard">
+        <h3>Tabuleiro Inimigo</h3>
+        <div id="enemyGrid" class="grid"></div>
       </div>
     </main>
   </div>
 
-  <script src="script.js"></script>
+  <!-- Modal Nome -->
+  <div class="modal" id="nameModal">
+    <div class="modal-content">
+      <h2>Digite seu nome</h2>
+      <input type="text" id="playerName" placeholder="Seu nome">
+      <button id="confirmName">Confirmar</button>
+    </div>
+  </div>
+
+  <!-- Modal Vencedor -->
+  <div class="modal" id="winnerModal" style="display:none;">
+    <div class="modal-content">
+      <h2 id="winnerText">Vitória!</h2>
+      <button id="playAgain">Jogar Novamente</button>
+    </div>
+  </div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
 </body>
 </html>

@@ -10,11 +10,9 @@ const SHIPS = [
 
 let roomId = null;
 let myTurn = false;
+let locked = false;
 let orientation = 'horizontal';
 let playerName = '';
-let playerCells = [];
-let enemyCells = [];
-let playerShips = [];
 
 const playerGrid = document.getElementById('playerGrid');
 const enemyGrid = document.getElementById('enemyGrid');
@@ -23,29 +21,28 @@ const statusEl = document.getElementById('status');
 const rotateBtn = document.getElementById('rotate');
 const readyBtn = document.getElementById('ready');
 
-// --- Modal de nome do jogador ---
-function askName() {
-  const overlay = document.createElement('div');
-  overlay.className = 'game-overlay';
-  overlay.innerHTML = `
-    <div class="name-box">
-      <h2>Digite seu nome</h2>
-      <input type="text" id="playerNameInput" placeholder="Seu nome"/>
-      <button id="startBtn">Começar</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
+// Modal de nome
+const nameModal = document.getElementById('nameModal');
+const confirmNameBtn = document.getElementById('confirmName');
+const playerNameInput = document.getElementById('playerName');
 
-  document.getElementById('startBtn').addEventListener('click', () => {
-    const input = document.getElementById('playerNameInput');
-    if (input.value.trim() === '') return alert('Digite um nome!');
-    playerName = input.value.trim();
-    overlay.remove();
-  });
-}
-askName();
+confirmNameBtn.addEventListener('click', () => {
+  const val = playerNameInput.value.trim();
+  if (!val) return alert('Digite seu nome!');
+  playerName = val;
+  nameModal.style.display = 'none';
+});
 
-// --- Criação dos grids ---
+playerNameInput.addEventListener('keyup', (e) => {
+  if (e.key === 'Enter') confirmNameBtn.click();
+});
+
+let playerCells = [];
+let enemyCells = [];
+let playerShips = [];
+let enemyHits = 0; // Contador de acertos no inimigo
+
+// === Criação dos grids ===
 function createGrid(container, arr, clickHandler) {
   container.innerHTML = '';
   for (let i = 0; i < 100; i++) {
@@ -60,7 +57,7 @@ function createGrid(container, arr, clickHandler) {
 createGrid(playerGrid, playerCells);
 createGrid(enemyGrid, enemyCells, handleAttack);
 
-// --- Renderizar lista de navios ---
+// === Renderizar lista de navios ===
 function renderShipList() {
   shipList.innerHTML = '';
   SHIPS.forEach(ship => {
@@ -82,10 +79,11 @@ function renderShipList() {
 }
 renderShipList();
 
-// --- Drag & Drop ---
+// === Drag & Drop ===
 let draggedShip = null;
 
 function dragStart(e) {
+  if (locked) return;
   draggedShip = {
     id: e.target.dataset.id,
     size: parseInt(e.target.dataset.size)
@@ -95,19 +93,23 @@ function dragStart(e) {
 
 playerCells.forEach(cell => {
   cell.addEventListener('dragover', e => {
-    if (!draggedShip) return;
+    if (!draggedShip || locked) return;
     e.preventDefault();
   });
 
   cell.addEventListener('drop', e => {
-    if (!draggedShip) return;
+    if (!draggedShip || locked) return;
     const idx = +cell.dataset.index;
     placeShip(idx);
   });
 
   cell.addEventListener('click', e => {
+    if (locked) return;
     const c = e.target;
-    if (c.classList.contains('ship-cell')) removeShip(c.dataset.shipId);
+    if (c.classList.contains('ship-cell')) {
+      const shipId = c.dataset.shipId;
+      removeShip(shipId);
+    }
   });
 });
 
@@ -120,9 +122,9 @@ function placeShip(startIdx) {
   for (let i = 0; i < ship.size; i++) {
     const r = orientation === 'horizontal' ? row : row + i;
     const c = orientation === 'horizontal' ? col + i : col;
-    if (r > 9 || c > 9) return;
+    if (r > 9 || c > 9) return; // fora do tabuleiro
     const idx = r * 10 + c;
-    if (playerCells[idx].dataset.state === 'ship') return;
+    if (playerCells[idx].dataset.state === 'ship') return; // sobreposição
     cells.push(idx);
   }
 
@@ -146,43 +148,58 @@ function removeShip(shipId) {
         delete c.dataset.state;
         delete c.dataset.shipId;
       });
-      renderShipList();
+      const shipData = SHIPS.find(x => x.id === shipId);
+      if (shipData) {
+        const div = document.createElement('div');
+        div.className = 'ship-item';
+        div.draggable = true;
+        div.dataset.id = shipData.id;
+        div.dataset.size = shipData.size;
+        div.textContent = `${shipData.name} (${shipData.size})`;
+        const swatch = document.createElement('div');
+        swatch.className = 'ship-swatch';
+        swatch.style.width = `${shipData.size * 30}px`;
+        div.appendChild(swatch);
+        div.addEventListener('dragstart', dragStart);
+        shipList.appendChild(div);
+      }
       return false;
     }
     return true;
   });
 }
 
-// --- Rotacionar navios ---
+// === Rotacionar apenas ao clicar no botão ===
 rotateBtn.addEventListener('click', () => {
   orientation = orientation === 'horizontal' ? 'vertical' : 'horizontal';
   rotateBtn.classList.toggle('rotated');
 });
 
-// --- Ready ---
+// === Botão Ready ===
 readyBtn.addEventListener('click', () => {
   if (playerShips.length !== SHIPS.length) {
     alert('Posicione todos os navios antes de continuar!');
     return;
   }
+  locked = true;
+  readyBtn.disabled = true;
+  shipList.innerHTML = '';
   const boardState = playerCells.map(c => c.classList.contains('ship-cell'));
-  socket.emit('ready', { roomId, board: boardState, name: playerName });
+  socket.emit('ready', { roomId, board: boardState });
   statusEl.textContent = 'Aguardando oponente...';
 });
 
-// --- Multiplayer ---
+// === Multiplayer ===
 socket.on('connect', () => (statusEl.textContent = '🟡 Aguardando outro jogador...'));
 socket.on('waiting', msg => (statusEl.textContent = msg));
 socket.on('match_found', ({ roomId: r }) => {
   roomId = r;
   statusEl.textContent = '🟢 Adversário encontrado!';
 });
-
-socket.on('both_ready', ({ firstTurn, names }) => {
-  myTurn = firstTurn === socket.id;
-  statusEl.textContent = myTurn ? 'Seu turno!' : `Turno do adversário...`;
+socket.on('both_ready', ({ firstTurn }) => {
+  myTurn = (firstTurn === socket.id);
+  statusEl.textContent = myTurn ? 'Seu turno!' : 'Turno do inimigo...';
 });
-
 socket.on('incoming_attack', ({ targetIndex }) => {
   const cell = playerCells[targetIndex];
   const hit = cell.classList.contains('ship-cell');
@@ -192,42 +209,48 @@ socket.on('incoming_attack', ({ targetIndex }) => {
   myTurn = true;
   statusEl.textContent = 'Seu turno!';
 });
-
 socket.on('attack_feedback', ({ targetIndex, hit }) => {
   const cell = enemyCells[targetIndex];
   cell.classList.add(hit ? 'hit' : 'miss');
 
+  if (hit) {
+    enemyHits++;
+    if (enemyHits === 17) {
+      // Vitória local confirmada
+      socket.emit('game_over', { roomId });
+      showEndModal(`${playerName} venceu! 🎉`);
+      return;
+    }
+  }
+
   myTurn = false;
   statusEl.textContent = 'Turno do inimigo...';
 });
-
-socket.on('game_won', () => showWinnerModal(true));
-socket.on('game_lost', () => showWinnerModal(false));
-
 socket.on('opponent_left', () => {
   alert('❌ Oponente saiu da partida.');
   location.reload();
 });
 
-// --- Ataque ---
 function handleAttack(e) {
-  if (!myTurn || !roomId) return;
+  if (!myTurn || !roomId || !locked) return;
   const idx = +e.target.dataset.index;
   socket.emit('attack', { roomId, targetIndex: idx });
   myTurn = false;
   statusEl.textContent = 'Turno do inimigo...';
 }
 
-// --- Modal de vitória ---
-function showWinnerModal(win) {
-  const overlay = document.createElement('div');
-  overlay.className = 'game-overlay';
-  overlay.innerHTML = `
-    <div class="winner-box">
-      <h2>${win ? '🎉 Você venceu!' : '💀 Você perdeu!'}</h2>
-      <button id="reloadBtn">Jogar novamente</button>
+// Modais de vitória
+socket.on('game_won', () => showEndModal(`${playerName} venceu! 🎉`));
+socket.on('game_lost', () => showEndModal(`Você perdeu! 💀`));
+
+function showEndModal(msg) {
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h2>${msg}</h2>
     </div>
   `;
-  document.body.appendChild(overlay);
-  document.getElementById('reloadBtn').addEventListener('click', () => location.reload());
+  document.body.appendChild(modal);
+  locked = true;
 }
