@@ -12,14 +12,14 @@ const PORT = process.env.PORT || 3000;
 
 // Estrutura de salas
 let waitingPlayer = null;
-const rooms = new Map(); // roomId -> { players: [socketIds], boards: {}, ready: {} }
+const rooms = new Map(); // roomId -> { players: [socketIds], boards: {}, ready: {}, names: {} }
 
 io.on("connection", (socket) => {
   console.log(`🔌 Novo jogador: ${socket.id}`);
 
   if (waitingPlayer) {
     const roomId = `room-${waitingPlayer}-${socket.id}`;
-    rooms.set(roomId, { players: [waitingPlayer, socket.id], boards: {}, ready: {} });
+    rooms.set(roomId, { players: [waitingPlayer, socket.id], boards: {}, ready: {}, names: {} });
 
     socket.join(roomId);
     io.to(waitingPlayer).socketsJoin(roomId);
@@ -32,16 +32,23 @@ io.on("connection", (socket) => {
     socket.emit("waiting", "Aguardando outro jogador...");
   }
 
-  socket.on("ready", ({ roomId, board }) => {
+  socket.on("ready", ({ roomId, board, name }) => {
     const room = rooms.get(roomId);
     if (!room) return;
 
+    // Salva o nome do jogador
+    room.names[socket.id] = name;
+
+    // Salva o estado do tabuleiro
     room.boards[socket.id] = board.map(cell => cell ? true : false);
     room.ready[socket.id] = true;
 
+    // Se ambos prontos
     if (room.players.every(p => room.ready[p])) {
       const firstTurn = room.players[Math.floor(Math.random() * 2)];
-      io.to(roomId).emit("both_ready", { firstTurn });
+
+      // Envia nomes dos jogadores para ambos
+      io.to(roomId).emit("both_ready", { firstTurn, names: room.names });
       console.log(`🚀 Ambos prontos na sala ${roomId}`);
     }
   });
