@@ -13,6 +13,7 @@ let myTurn = false;
 let locked = false;
 let orientation = 'horizontal';
 let playerName = '';
+let placedShips = new Map(); // id -> { size, cells: [], sunk: false }
 
 const playerGrid = document.getElementById('playerGrid');
 const enemyGrid = document.getElementById('enemyGrid');
@@ -31,6 +32,7 @@ confirmNameBtn.addEventListener('click', () => {
   if (!val) return alert('Digite seu nome!');
   playerName = val;
   nameModal.style.display = 'none';
+  socket.emit('set_name', playerName);
 });
 
 playerNameInput.addEventListener('keyup', (e) => {
@@ -40,9 +42,8 @@ playerNameInput.addEventListener('keyup', (e) => {
 let playerCells = [];
 let enemyCells = [];
 let playerShips = [];
-let enemyHits = 0; // Contador de acertos no inimigo
+let enemyHits = 0;
 
-// === Criação dos grids ===
 function createGrid(container, arr, clickHandler) {
   container.innerHTML = '';
   for (let i = 0; i < 100; i++) {
@@ -57,7 +58,6 @@ function createGrid(container, arr, clickHandler) {
 createGrid(playerGrid, playerCells);
 createGrid(enemyGrid, enemyCells, handleAttack);
 
-// === Renderizar lista de navios ===
 function renderShipList() {
   shipList.innerHTML = '';
   SHIPS.forEach(ship => {
@@ -79,7 +79,6 @@ function renderShipList() {
 }
 renderShipList();
 
-// === Drag & Drop ===
 let draggedShip = null;
 
 function dragStart(e) {
@@ -122,9 +121,9 @@ function placeShip(startIdx) {
   for (let i = 0; i < ship.size; i++) {
     const r = orientation === 'horizontal' ? row : row + i;
     const c = orientation === 'horizontal' ? col + i : col;
-    if (r > 9 || c > 9) return; // fora do tabuleiro
+    if (r > 9 || c > 9) return;
     const idx = r * 10 + c;
-    if (playerCells[idx].dataset.state === 'ship') return; // sobreposição
+    if (playerCells[idx].dataset.state === 'ship') return;
     cells.push(idx);
   }
 
@@ -135,6 +134,8 @@ function placeShip(startIdx) {
   });
 
   playerShips.push({ ...ship, coords: cells });
+  placedShips.set(ship.id, { size: ship.size, cells: cells.slice(), sunk: false });
+
   document.querySelector(`[data-id="${ship.id}"]`)?.remove();
   draggedShip = null;
 }
@@ -148,6 +149,8 @@ function removeShip(shipId) {
         delete c.dataset.state;
         delete c.dataset.shipId;
       });
+      placedShips.delete(shipId);
+
       const shipData = SHIPS.find(x => x.id === shipId);
       if (shipData) {
         const div = document.createElement('div');
@@ -169,13 +172,11 @@ function removeShip(shipId) {
   });
 }
 
-// === Rotacionar apenas ao clicar no botão ===
 rotateBtn.addEventListener('click', () => {
   orientation = orientation === 'horizontal' ? 'vertical' : 'horizontal';
   rotateBtn.classList.toggle('rotated');
 });
 
-// === Botão Ready ===
 readyBtn.addEventListener('click', () => {
   if (playerShips.length !== SHIPS.length) {
     alert('Posicione todos os navios antes de continuar!');
@@ -189,26 +190,40 @@ readyBtn.addEventListener('click', () => {
   statusEl.textContent = 'Aguardando oponente...';
 });
 
-// === Multiplayer ===
-socket.on('connect', () => (statusEl.textContent = '🟡 Aguardando outro jogador...'));
+socket.on('connect', () => (statusEl.textContent = 'Aguardando outro jogador...'));
 socket.on('waiting', msg => (statusEl.textContent = msg));
 socket.on('match_found', ({ roomId: r }) => {
   roomId = r;
-  statusEl.textContent = '🟢 Adversário encontrado!';
+  statusEl.textContent = 'Adversário encontrado!';
 });
 socket.on('both_ready', ({ firstTurn }) => {
   myTurn = (firstTurn === socket.id);
   statusEl.textContent = myTurn ? 'Seu turno!' : 'Turno do inimigo...';
 });
+
 socket.on('incoming_attack', ({ targetIndex }) => {
   const cell = playerCells[targetIndex];
   const hit = cell.classList.contains('ship-cell');
   cell.classList.add(hit ? 'hit' : 'miss');
-  socket.emit('attack_result', { roomId, targetIndex, hit });
 
+  if (hit) {
+    const shipId = cell.dataset.shipId;
+    if (shipId && placedShips.has(shipId)) {
+      const ship = placedShips.get(shipId);
+      ship.cells = ship.cells.filter(idx => !playerCells[idx].classList.contains('hit'));
+      if (ship.cells.length === 0 && !ship.sunk) {
+        ship.sunk = true;
+        const shipName = SHIPS.find(s => s.id === shipId).name;
+        socket.emit('ship_sunk', { roomId, shipName, attackerName: playerName });
+      }
+    }
+  }
+
+  socket.emit('attack_result', { roomId, targetIndex, hit });
   myTurn = true;
   statusEl.textContent = 'Seu turno!';
 });
+
 socket.on('attack_feedback', ({ targetIndex, hit }) => {
   const cell = enemyCells[targetIndex];
   cell.classList.add(hit ? 'hit' : 'miss');
@@ -216,9 +231,7 @@ socket.on('attack_feedback', ({ targetIndex, hit }) => {
   if (hit) {
     enemyHits++;
     if (enemyHits === 17) {
-      // Vitória local confirmada
-      socket.emit('game_over', { roomId });
-      showEndModal(`${playerName} venceu! 🎉`);
+      showEndModal(`${playerName} venceu!`);
       return;
     }
   }
@@ -226,8 +239,9 @@ socket.on('attack_feedback', ({ targetIndex, hit }) => {
   myTurn = false;
   statusEl.textContent = 'Turno do inimigo...';
 });
+
 socket.on('opponent_left', () => {
-  alert('❌ Oponente saiu da partida.');
+  alert('Oponente saiu da partida.');
   location.reload();
 });
 
@@ -239,9 +253,13 @@ function handleAttack(e) {
   statusEl.textContent = 'Turno do inimigo...';
 }
 
-// Modais de vitória
-socket.on('game_won', () => showEndModal(`${playerName} venceu! 🎉`));
-socket.on('game_lost', () => showEndModal(`Você perdeu! 💀`));
+socket.on('game_won', () => showEndModal(`${playerName} venceu!`));
+socket.on('game_lost', () => showEndModal(`Você perdeu!`));
+
+// NOVO: Modal temporário de navio destruído
+socket.on('ship_destroyed', ({ attackerName, shipName }) => {
+  showTempModal(`${attackerName} destruiu ${shipName}!`, 3000);
+});
 
 function showEndModal(msg) {
   const modal = document.createElement('div');
@@ -253,4 +271,21 @@ function showEndModal(msg) {
   `;
   document.body.appendChild(modal);
   locked = true;
+}
+
+// Modal temporário
+function showTempModal(message, duration = 3000) {
+  const modal = document.createElement('div');
+  modal.className = 'temp-modal';
+  modal.innerHTML = `
+    <div class="temp-modal-content">
+      <p>${message}</p>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  setTimeout(() => {
+    modal.style.opacity = '0';
+    setTimeout(() => modal.remove(), 300);
+  }, duration);
 }

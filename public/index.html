@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Batalha Naval Multiplayer</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batalha Naval Multiplayer</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="wrap">
-
     <div class="controls">
       <div class="ship-list" id="shipList"></div>
       <button id="rotate">Rotacionar (R)</button>
@@ -38,15 +37,7 @@
     </div>
   </div>
 
-  <!-- Modal Vencedor -->
-  <div class="modal" id="winnerModal" style="display:none;">
-    <div class="modal-content">
-      <h2 id="winnerText">Vitória!</h2>
-      <button id="playAgain">Jogar Novamente</button>
-    </div>
-  </div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script src="script.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

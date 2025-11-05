@@ -15,10 +15,10 @@ let waitingPlayer = null;
 const rooms = new Map(); // roomId -> { players: [socketIds], boards: {}, ready: {}, names: {} }
 
 io.on("connection", (socket) => {
-  console.log(`🔌 Novo jogador: ${socket.id}`);
+  console.log(`Novo jogador: ${socket.id}`);
 
   socket.on("set_name", (name) => {
-    socket.data.name = name; // armazenamos o nome no socket
+    socket.data.name = name;
   });
 
   if (waitingPlayer) {
@@ -28,13 +28,12 @@ io.on("connection", (socket) => {
     socket.join(roomId);
     io.to(waitingPlayer).socketsJoin(roomId);
 
-    // salvar nomes
     const room = rooms.get(roomId);
     room.names[waitingPlayer] = io.sockets.sockets.get(waitingPlayer)?.data.name || "Jogador1";
     room.names[socket.id] = socket.data.name || "Jogador2";
 
     io.to(roomId).emit("match_found", { roomId });
-    console.log(`🎯 Sala criada: ${roomId}`);
+    console.log(`Sala criada: ${roomId}`);
     waitingPlayer = null;
   } else {
     waitingPlayer = socket.id;
@@ -51,7 +50,7 @@ io.on("connection", (socket) => {
     if (room.players.every(p => room.ready[p])) {
       const firstTurn = room.players[Math.floor(Math.random() * 2)];
       io.to(roomId).emit("both_ready", { firstTurn });
-      console.log(`🚀 Ambos prontos na sala ${roomId}`);
+      console.log(`Ambos prontos na sala ${roomId}`);
     }
   });
 
@@ -85,8 +84,15 @@ io.on("connection", (socket) => {
     }
   });
 
+  // NOVO: Quando um navio é destruído
+  socket.on("ship_sunk", ({ roomId, shipName, attackerName }) => {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    io.to(roomId).emit("ship_destroyed", { attackerName, shipName });
+  });
+
   socket.on("disconnect", () => {
-    console.log(`❌ Jogador saiu: ${socket.id}`);
+    console.log(`Jogador saiu: ${socket.id}`);
     if (waitingPlayer === socket.id) waitingPlayer = null;
 
     for (const [roomId, room] of rooms) {
@@ -98,4 +104,4 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(PORT, () => console.log(`🚀 Servidor rodando em http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
