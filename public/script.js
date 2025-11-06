@@ -256,9 +256,9 @@ function handleAttack(e) {
 socket.on('game_won', () => showEndModal(`${playerName} venceu!`));
 socket.on('game_lost', () => showEndModal(`Você perdeu!`));
 
-// NOVO: Modal temporário de navio destruído
-socket.on('ship_destroyed', ({ attackerName, shipName }) => {
-  showTempModal(`${attackerName} destruiu ${shipName}!`, 3000);
+
+socket.on('ship_destroyed', ({shipName }) => {
+  showTempModal(`${shipName} Destruido!`, 3000);
 });
 
 function showEndModal(msg) {
@@ -273,7 +273,7 @@ function showEndModal(msg) {
   locked = true;
 }
 
-// Modal temporário
+
 function showTempModal(message, duration = 3000) {
   const modal = document.createElement('div');
   modal.className = 'temp-modal';
