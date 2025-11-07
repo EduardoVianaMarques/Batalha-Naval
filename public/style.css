@@ -150,7 +150,6 @@ main {
   to { box-shadow: 0 0 15px #ff3030; }
 }
 
-/* Modais */
 .modal {
   position: fixed;
   top:0; left:0; right:0; bottom:0;
@@ -180,7 +179,6 @@ main {
   margin-top: 15px;
 }
 
-/* NOVO: Modal temporário de navio destruído */
 .temp-modal {
   position: fixed;
   top: 20px;

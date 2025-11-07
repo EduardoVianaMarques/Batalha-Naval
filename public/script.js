@@ -13,7 +13,7 @@ let myTurn = false;
 let locked = false;
 let orientation = 'horizontal';
 let playerName = '';
-let placedShips = new Map(); // id -> { size, cells: [], sunk: false }
+let placedShips = new Map();
 
 const playerGrid = document.getElementById('playerGrid');
 const enemyGrid = document.getElementById('enemyGrid');
@@ -22,7 +22,6 @@ const statusEl = document.getElementById('status');
 const rotateBtn = document.getElementById('rotate');
 const readyBtn = document.getElementById('ready');
 
-// Modal de nome
 const nameModal = document.getElementById('nameModal');
 const confirmNameBtn = document.getElementById('confirmName');
 const playerNameInput = document.getElementById('playerName');
