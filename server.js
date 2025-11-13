@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 // Estrutura de salas
 let waitingPlayer = null;
-const rooms = new Map(); // roomId -> { players: [socketIds], boards: {}, ready: {}, names: {} }
+const rooms = new Map(); 
 
 io.on("connection", (socket) => {
   console.log(`Novo jogador: ${socket.id}`);
@@ -84,7 +84,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // NOVO: Quando um navio é destruído
+
   socket.on("ship_sunk", ({ roomId, shipName, attackerName }) => {
     const room = rooms.get(roomId);
     if (!room) return;
